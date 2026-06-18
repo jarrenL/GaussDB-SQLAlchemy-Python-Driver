@@ -193,6 +193,16 @@ dist/gaussdb_sqlalchemy_driver-0.1.0.tar.gz
 - B 兼容库可执行部分 MySQL 风格语法，例如反引号、`ifnull()`、`auto_increment`
 - 当前包仍基于 GaussDB Python DB-API 和 SQLAlchemy 方言适配，不是 MySQL 原生协议驱动
 
+明确不声明支持：
+
+- Oracle 原生协议
+- MySQL 原生协议
+- MySQL M-Compatibility
+- 完整 Oracle/MySQL 语法兼容
+- Alembic autogenerate
+
+已识别的不兼容项见 [docs/兼容性声明.md](docs/兼容性声明.md)。
+
 后续可以继续补充：
 
 - SQLAlchemy 方言兼容性测试套件
