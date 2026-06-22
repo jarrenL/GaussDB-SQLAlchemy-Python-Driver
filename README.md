@@ -158,6 +158,8 @@ GAUSSDB_TEST_URL='gaussdb+gaussdb://user:password@host:port/postgres' \
 python scripts/run_syntax_probe.py
 ```
 
+Windows 实机测试步骤、前置条件、测试场景和真实数据库地址配置方式见 [docs/Windows测试指导手册.md](docs/Windows测试指导手册.md)。
+
 ## Alembic 支持
 
 测试依赖中包含 Alembic。本项目会在 Alembic 可用时注册 `gaussdb` DDL 实现，复用 Alembic PostgreSQL 基础实现，当前已验证：
