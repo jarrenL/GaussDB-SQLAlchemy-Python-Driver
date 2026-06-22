@@ -198,3 +198,7 @@ dist/gaussdb_sqlalchemy_driver-0.1.0.tar.gz
 - SQLAlchemy 方言兼容性测试套件
 - GaussDB 特有 SQL、数据类型和系统表反射适配
 - Windows 离线安装包和部署脚本
+
+## 开源协议
+
+本项目采用 Apache License 2.0 开源协议发布，详见 [LICENSE](LICENSE)。
