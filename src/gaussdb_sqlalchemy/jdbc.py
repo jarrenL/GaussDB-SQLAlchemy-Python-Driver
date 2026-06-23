@@ -65,7 +65,7 @@ class GaussDBDialect_jdbc(GaussDBDialect):
         jdbc_url = opts.pop("jdbc_url", None)
 
         if not jdbc_url:
-            jdbc_url = self._build_jdbc_url(url, opts)
+            jdbc_url = self._build_jdbc_url(url, opts, driver_class)
 
         properties: dict[str, Any] = {}
         user = opts.pop("user", None)
@@ -112,7 +112,7 @@ class GaussDBDialect_jdbc(GaussDBDialect):
         return [part for part in str(driver_path).split(";") if part]
 
     @staticmethod
-    def _build_jdbc_url(url, opts: dict[str, Any]) -> str:
+    def _build_jdbc_url(url, opts: dict[str, Any], driver_class: str) -> str:
         host = opts.get("host") or url.host or "localhost"
         port = opts.get("port") or url.port
         database = opts.get("database") or opts.get("dbname") or url.database
@@ -120,7 +120,7 @@ class GaussDBDialect_jdbc(GaussDBDialect):
             raise ValueError("A database name is required for gaussdb+jdbc URLs")
 
         authority = f"{host}:{port}" if port else str(host)
-        jdbc_url = f"jdbc:gaussdb://{authority}/{database}"
+        jdbc_url = f"{_jdbc_url_prefix(driver_class)}{authority}/{database}"
         query = {
             key: value
             for key, value in url.query.items()
@@ -130,6 +130,12 @@ class GaussDBDialect_jdbc(GaussDBDialect):
         if query:
             jdbc_url = _merge_query(jdbc_url, query)
         return jdbc_url
+
+
+def _jdbc_url_prefix(driver_class: str) -> str:
+    if driver_class.lower() == "org.postgresql.driver":
+        return "jdbc:postgresql://"
+    return "jdbc:gaussdb://"
 
 
 def _merge_query(jdbc_url: str, query: dict[str, Any]) -> str:

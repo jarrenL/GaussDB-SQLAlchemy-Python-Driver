@@ -54,6 +54,27 @@ def test_create_connect_args_supports_custom_driver_class_and_jdbc_url():
     ]
 
 
+def test_create_connect_args_builds_postgresql_url_for_postgresql_driver_class():
+    dialect = GaussDBDialect_jdbc()
+
+    args, kwargs = dialect.create_connect_args(
+        make_url(
+            "gaussdb+jdbc://scott:tiger@db.example.com:5432/postgres"
+            "?jdbc_driver_class=org.postgresql.Driver"
+            "&jdbc_driver_path=C:/drivers/postgresql.jar"
+            "&ssl=true"
+        )
+    )
+
+    assert kwargs == {}
+    assert args == [
+        "org.postgresql.Driver",
+        "jdbc:postgresql://db.example.com:5432/postgres?ssl=true",
+        {"user": "scott", "password": "tiger", "ssl": "true"},
+        ["C:/drivers/postgresql.jar"],
+    ]
+
+
 def test_create_connect_args_requires_database_name():
     dialect = GaussDBDialect_jdbc()
 
