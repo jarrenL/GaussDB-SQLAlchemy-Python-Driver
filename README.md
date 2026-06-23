@@ -160,6 +160,9 @@ Windows 实机测试步骤、前置条件、测试场景和真实数据库地址
 ## 已知限制
 
 - GaussDB 集中式不支持 PostgreSQL `ON CONFLICT` upsert 语法。SQLAlchemy PostgreSQL 方言的 `insert(...).on_conflict_do_update()` 会生成 `ON CONFLICT` SQL，当前版本仅声明该限制，不做自动改写。
+- M 兼容下 `LIKE` 默认大小写不敏感，符合 MySQL 风格行为；A/B 兼容下 `LIKE` 为大小写敏感。跨兼容模式迁移时需要单独确认查询语义。
+- M 兼容下不支持 `INTERSECT` / `EXCEPT` 集合运算；SQLAlchemy 的 `intersect()` / `except_()` 在 M 兼容库上会由数据库返回语法错误。
+- M 兼容下 raw SQL `CREATE TEMP TABLE` 不支持，需使用 `CREATE TEMPORARY TABLE`；通过 SQLAlchemy 创建临时表时建议显式使用 `prefixes=["TEMPORARY"]`。
 
 ## 并发限制
 

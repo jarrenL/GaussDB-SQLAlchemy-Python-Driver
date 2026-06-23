@@ -13,3 +13,4 @@ release/
 _local/
 tests/test_edge_cases.py
 tests/test_edge_cases2.py
+tests/test_edge_cases3.py

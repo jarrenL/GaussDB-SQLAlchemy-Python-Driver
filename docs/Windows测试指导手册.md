@@ -468,6 +468,14 @@ pytest -m integration -rs
 
 GaussDB 集中式不支持 PostgreSQL `ON CONFLICT` upsert 语法。SQLAlchemy PostgreSQL 方言的 `insert(...).on_conflict_do_update()` 会生成 `ON CONFLICT` SQL，如果数据库返回语法或能力限制错误，属于 GaussDB 集中式限制，不是 Windows 环境或 JDBC 驱动安装问题。
 
+### 6.8 M 兼容 LIKE、INTERSECT、EXCEPT 或临时表语法失败
+
+以下现象属于 M 兼容模式的数据库行为差异，不是 Windows 环境问题：
+
+- `LIKE` 默认大小写不敏感，测试断言不能按 A/B 兼容的大小写敏感结果编写。
+- `INTERSECT` / `EXCEPT` 不支持，SQLAlchemy 的 `intersect()` / `except_()` 在 M 兼容库上会失败。
+- raw SQL `CREATE TEMP TABLE` 不支持，应改为 `CREATE TEMPORARY TABLE`；SQLAlchemy Core 建临时表建议使用 `prefixes=["TEMPORARY"]`。
+
 判断驱动核心能力时，以 `run_integration_probe.py` 和 pytest 集成测试结果为主。
 
 ## 7. 测试报告模板
