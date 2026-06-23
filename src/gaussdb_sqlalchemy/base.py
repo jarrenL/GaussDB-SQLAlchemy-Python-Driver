@@ -194,6 +194,33 @@ class GaussDBDialect(PGDialect):
             return None
         return self._decode_if_bytes(compatibility)
 
+    def has_table(self, connection, table_name, schema=None, **kw):
+        conditions = [
+            "c.relname = :table_name",
+            "c.relkind in ('r', 'p', 'f', 'v', 'm')",
+        ]
+        params = {"table_name": table_name}
+        if schema is not None:
+            conditions.append("n.nspname = :schema")
+            params["schema"] = schema
+        else:
+            conditions.append("pg_catalog.pg_table_is_visible(c.oid)")
+            conditions.append("n.nspname != 'pg_catalog'")
+
+        query = text(
+            """
+            select 1
+            from pg_catalog.pg_class c
+            join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+            where
+            """
+            + " and ".join(conditions)
+            + """
+            limit 1
+            """
+        )
+        return connection.execute(query, params).first() is not None
+
     def get_columns(self, connection, table_name, schema=None, **kw):
         columns = dict(
             self.get_multi_columns(
@@ -300,8 +327,14 @@ class GaussDBDialect(PGDialect):
         return reflected.items()
 
     def get_pk_constraint(self, connection, table_name, schema=None, **kw):
+        schema_condition = ""
+        params = {"table_name": table_name}
+        if schema is not None:
+            schema_condition = " and n.nspname = :schema"
+            params["schema"] = schema
+
         query = text(
-            """
+            f"""
             select
                 con.conname as name,
                 a.attname as column_name,
@@ -313,13 +346,11 @@ class GaussDBDialect(PGDialect):
                 on a.attrelid = c.oid and a.attnum = any(con.conkey)
             where con.contype = 'p'
               and c.relname = :table_name
-              and (:schema is null or n.nspname = :schema)
+              {schema_condition}
             order by a.attnum
             """
         )
-        rows = connection.execute(
-            query, {"table_name": table_name, "schema": schema}
-        ).mappings()
+        rows = connection.execute(query, params).mappings()
         constraint_name = None
         constrained_columns = []
         for row in rows:
@@ -340,8 +371,14 @@ class GaussDBDialect(PGDialect):
         return constraints.items()
 
     def get_unique_constraints(self, connection, table_name, schema=None, **kw):
+        schema_condition = ""
+        params = {"table_name": table_name}
+        if schema is not None:
+            schema_condition = " and n.nspname = :schema"
+            params["schema"] = schema
+
         query = text(
-            """
+            f"""
             select
                 con.conname as name,
                 a.attname as column_name,
@@ -353,13 +390,11 @@ class GaussDBDialect(PGDialect):
                 on a.attrelid = c.oid and a.attnum = any(con.conkey)
             where con.contype = 'u'
               and c.relname = :table_name
-              and (:schema is null or n.nspname = :schema)
+              {schema_condition}
             order by con.conname, a.attnum
             """
         )
-        rows = connection.execute(
-            query, {"table_name": table_name, "schema": schema}
-        ).mappings()
+        rows = connection.execute(query, params).mappings()
         constraints = {}
         for row in rows:
             name = self._decode_if_bytes(row["name"])
@@ -384,8 +419,14 @@ class GaussDBDialect(PGDialect):
         return constraints.items()
 
     def get_indexes(self, connection, table_name, schema=None, **kw):
+        schema_condition = ""
+        params = {"table_name": table_name}
+        if schema is not None:
+            schema_condition = " and n.nspname = :schema"
+            params["schema"] = schema
+
         query = text(
-            """
+            f"""
             select
                 i.relname as index_name,
                 x.indisunique as is_unique,
@@ -399,14 +440,12 @@ class GaussDBDialect(PGDialect):
             left join pg_catalog.pg_attribute a
                 on a.attrelid = t.oid and a.attnum = any(x.indkey)
             where t.relname = :table_name
-              and (:schema is null or n.nspname = :schema)
+              {schema_condition}
               and not x.indisprimary
             order by i.relname, a.attnum
             """
         )
-        rows = connection.execute(
-            query, {"table_name": table_name, "schema": schema}
-        ).mappings()
+        rows = connection.execute(query, params).mappings()
         indexes = {}
         for row in rows:
             name = self._decode_if_bytes(row["index_name"])

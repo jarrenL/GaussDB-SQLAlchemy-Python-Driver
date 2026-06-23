@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
 
 from sqlalchemy.dialects import registry
+from sqlalchemy import types as sqltypes
 
 from . import jdbc_dbapi
 from .alembic import register_alembic_impl
@@ -28,12 +29,28 @@ _CONTROL_KEYS = {
 }
 
 
+class _GaussDBJDBCDate(sqltypes.Date):
+    def result_processor(self, dialect, coltype):
+        def process(value):
+            if isinstance(value, datetime):
+                return value.date()
+            if isinstance(value, date):
+                return value
+            return value
+
+        return process
+
+
 class GaussDBDialect_jdbc(GaussDBDialect):
     """GaussDB dialect backed by a JDBC driver via JayDeBeApi."""
 
     driver = "jdbc"
     default_paramstyle = "qmark"
     supports_statement_cache = True
+    colspecs = {
+        **GaussDBDialect.colspecs,
+        sqltypes.Date: _GaussDBJDBCDate,
+    }
 
     @classmethod
     def import_dbapi(cls):

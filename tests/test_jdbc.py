@@ -1,7 +1,10 @@
 import sys
 import types
+from datetime import date
+from datetime import datetime
 
 import pytest
+from sqlalchemy import Date
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.dialects import registry
@@ -69,6 +72,15 @@ def test_current_timestamp_expression_compiles_without_parentheses():
     )
 
     assert str(compiled) == "SELECT CURRENT_TIMESTAMP AS current_timestamp_1"
+
+
+def test_jdbc_date_result_processor_converts_datetime_to_date():
+    dialect = GaussDBDialect_jdbc()
+    processor = dialect.type_descriptor(Date()).result_processor(dialect, None)
+
+    assert processor(datetime(2026, 6, 18, 0, 0, 0)) == date(2026, 6, 18)
+    assert processor(date(2026, 6, 18)) == date(2026, 6, 18)
+    assert processor(None) is None
 
 
 def test_jdbc_dbapi_loads_jaydebeapi_lazily(monkeypatch):

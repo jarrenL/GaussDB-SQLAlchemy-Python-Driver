@@ -32,6 +32,9 @@ class _Rows:
     def mappings(self):
         return self.rows
 
+    def first(self):
+        return self.rows[0] if self.rows else None
+
 
 class _ReflectionConnection:
     def __init__(self, rows):
@@ -149,6 +152,28 @@ def test_get_columns_uses_gaussdb_compatible_reflection_query():
     )
 
 
+def test_has_table_uses_gaussdb_compatible_reflection_query():
+    dialect = GaussDBDialect()
+    connection = _ReflectionConnection([(1,)])
+
+    assert dialect.has_table(connection, "demo") is True
+    assert "relkind in ('r', 'p', 'f', 'v', 'm')" in connection.statement.text
+    assert "ANY (ARRAY" not in connection.statement.text
+    assert ":schema is null" not in connection.statement.text
+    assert connection.params == {"table_name": "demo"}
+
+
+def test_has_table_filters_schema_without_nullable_parameter_probe():
+    dialect = GaussDBDialect()
+    connection = _ReflectionConnection([])
+
+    assert dialect.has_table(connection, "demo", schema="app") is False
+    assert "n.nspname = :schema" in connection.statement.text
+    assert "ANY (ARRAY" not in connection.statement.text
+    assert ":schema is null" not in connection.statement.text
+    assert connection.params == {"table_name": "demo", "schema": "app"}
+
+
 def test_get_pk_constraint_uses_gaussdb_compatible_query():
     dialect = GaussDBDialect()
     connection = _ReflectionConnection(
@@ -161,6 +186,19 @@ def test_get_pk_constraint_uses_gaussdb_compatible_query():
         "constrained_columns": ["id"],
         "name": "demo_pkey",
     }
+    assert ":schema is null" not in connection.statement.text
+    assert connection.params == {"table_name": "demo"}
+
+
+def test_get_pk_constraint_filters_schema_without_nullable_parameter_probe():
+    dialect = GaussDBDialect()
+    connection = _ReflectionConnection([])
+
+    dialect.get_pk_constraint(connection, "demo", schema="app")
+
+    assert ":schema is null" not in connection.statement.text
+    assert "n.nspname = :schema" in connection.statement.text
+    assert connection.params == {"table_name": "demo", "schema": "app"}
 
 
 def test_get_unique_constraints_uses_gaussdb_compatible_query():
@@ -178,6 +216,19 @@ def test_get_unique_constraints_uses_gaussdb_compatible_query():
             "duplicates_index": None,
         }
     ]
+    assert ":schema is null" not in connection.statement.text
+    assert connection.params == {"table_name": "demo"}
+
+
+def test_get_unique_constraints_filters_schema_without_nullable_parameter_probe():
+    dialect = GaussDBDialect()
+    connection = _ReflectionConnection([])
+
+    dialect.get_unique_constraints(connection, "demo", schema="app")
+
+    assert ":schema is null" not in connection.statement.text
+    assert "n.nspname = :schema" in connection.statement.text
+    assert connection.params == {"table_name": "demo", "schema": "app"}
 
 
 def test_get_indexes_uses_gaussdb_compatible_query():
@@ -202,6 +253,19 @@ def test_get_indexes_uses_gaussdb_compatible_query():
             "include_columns": [],
         }
     ]
+    assert ":schema is null" not in connection.statement.text
+    assert connection.params == {"table_name": "demo"}
+
+
+def test_get_indexes_filters_schema_without_nullable_parameter_probe():
+    dialect = GaussDBDialect()
+    connection = _ReflectionConnection([])
+
+    dialect.get_indexes(connection, "demo", schema="app")
+
+    assert ":schema is null" not in connection.statement.text
+    assert "n.nspname = :schema" in connection.statement.text
+    assert connection.params == {"table_name": "demo", "schema": "app"}
 
 
 def test_get_indexes_keeps_expression_indexes_without_column_names():
