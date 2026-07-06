@@ -158,7 +158,7 @@ def register_alembic_impl() -> bool:
                 compatibility = bind.execute(
                     text(
                         """
-                        select datcompatibility
+                        select datcompatibility::text
                         from pg_database
                         where datname = current_database()
                         """

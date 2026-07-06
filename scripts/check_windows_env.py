@@ -1,4 +1,4 @@
-"""Check whether the local Python environment can load the GaussDB driver."""
+"""Check whether the local Python environment can load the GaussDB ODBC driver."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import argparse
 import importlib
 import os
 import sys
-from pathlib import Path
 from urllib.parse import parse_qsl
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -35,9 +34,28 @@ def _check_import(module_name: str) -> object | None:
     return module
 
 
+def _check_odbc_drivers() -> list[str]:
+    """List installed ODBC drivers (best effort)."""
+    try:
+        import pyodbc
+        drivers = pyodbc.drivers()
+        if drivers:
+            print(f"[ OK ] ODBC drivers found: {len(drivers)}")
+            for d in drivers:
+                if "gauss" in d.lower() or "postgres" in d.lower():
+                    print(f"       * {d}")
+            return drivers
+        else:
+            print("[WARN] No ODBC drivers registered in the system.")
+            return []
+    except Exception as exc:
+        print(f"[WARN] Could not list ODBC drivers: {exc}")
+        return []
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Check GaussDB Python and SQLAlchemy driver availability."
+        description="Check GaussDB ODBC and SQLAlchemy driver availability."
     )
     parser.add_argument(
         "--url",
@@ -48,27 +66,20 @@ def main() -> int:
 
     print(f"Python: {sys.version.split()[0]}")
     print(f"Executable: {sys.executable}")
+    print(f"Platform: {sys.platform}")
     print(f"PATH: {os.environ.get('PATH', '')}")
 
     sqlalchemy = _check_import("sqlalchemy")
     dialect = _check_import("gaussdb_sqlalchemy")
-    jaydebeapi = _check_import("jaydebeapi")
-    jpype = _check_import("jpype")
-    if args.url:
-        query = dict(parse_qsl(urlsplit(args.url).query, keep_blank_values=True))
-        jar = query.get("jdbc_driver_path")
-        if jar:
-            jar_path = Path(jar)
-            if jar_path.exists():
-                print(f"[ OK ] JDBC driver jar: {jar_path}")
-            else:
-                print(f"[FAIL] JDBC driver jar not found: {jar_path}")
-                return 1
+    pyodbc = _check_import("pyodbc")
 
-    if not all((sqlalchemy, dialect, jaydebeapi, jpype)):
+    if pyodbc:
+        _check_odbc_drivers()
+
+    if not all((sqlalchemy, dialect, pyodbc)):
         print()
-        print("请确认已安装 JayDeBeApi、JPype1、SQLAlchemy 和本项目 wheel。")
-        print("Windows 上还需要安装 Java Runtime，并提供 GaussDB JDBC jar。")
+        print("请确认已安装 pyodbc、SQLAlchemy 和本项目 wheel。")
+        print("还需要安装 GaussDB ODBC 驱动。")
         return 1
 
     if not args.url:

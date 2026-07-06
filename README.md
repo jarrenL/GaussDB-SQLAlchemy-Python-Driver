@@ -1,30 +1,48 @@
 # GaussDB SQLAlchemy Python 驱动
 
-面向华为 GaussDB 轻量化集中式的 Python SQLAlchemy 方言驱动。通过 JayDeBeApi/JPype 调用 GaussDB JDBC Driver，接入 SQLAlchemy 的 ORM、连接池、事务、SQL 编译和反射能力。支持 A 兼容（Oracle 风格）、B 兼容（MySQL 风格）和 M 兼容（MySQL 风格）三种模式。
+面向华为 GaussDB 集中式数据库的 Python SQLAlchemy 方言驱动。通过 pyodbc 调用 GaussDB ODBC Driver，接入 SQLAlchemy 的 ORM、连接池、事务、SQL 编译和反射能力。支持 A 兼容（Oracle 风格）、B 兼容（MySQL 风格）和 M 兼容（MySQL 风格）三种模式。
 
-JDBC 驱动 jar 已内置在 whl 包中，Windows 上不需要额外安装数据库客户端 DLL，也不需要单独下载 JDBC 驱动。
+不需要 Java 环境，不需要 libpq，只需安装 GaussDB ODBC 驱动和 pyodbc 即可。
 
 ## 前置条件
 
 - Python 3.8 及以上
-- JRE 或 JDK 8 及以上（Java 运行环境）
+- GaussDB ODBC 驱动（从华为云下载，安装后在系统 ODBC 管理器中可见）
+- pyodbc（pip 自动安装）
+
+### 各平台 ODBC 驱动安装
+
+**Windows：**
+1. 从华为云下载 GaussDB ODBC 驱动安装包
+2. 运行安装程序，驱动自动注册到系统 ODBC 管理器
+3. 无需额外配置，直接 pip install 即可使用
+
+**Linux：**
+1. 下载 GaussDB ODBC 驱动包并解压
+2. 安装 unixODBC：`yum install unixODBC` 或 `apt install unixodbc`
+3. 配置 /etc/odbcinst.ini 注册驱动
+4. 确保 .so 文件路径在 LD_LIBRARY_PATH 中
+
+**macOS：**
+1. 安装 unixODBC：`brew install unixodbc`
+2. 下载并配置 GaussDB ODBC 驱动
 
 ## 安装
 
 ```bash
-pip install gaussdb_sqlalchemy_driver-0.1.0-py3-none-any.whl
+pip install gaussdb_sqlalchemy_python_driver-0.2.0-py3-none-any.whl
 ```
 
-安装后自动拉取 SQLAlchemy、JayDeBeApi、JPype1 三个依赖。JDBC 驱动 jar 已内置，无需额外下载。
+安装后自动拉取 SQLAlchemy 和 pyodbc。
 
 ## 快速开始
 
 ```python
 from sqlalchemy import create_engine, text
 
-# 不需要指定 jar 路径，driver 自动使用包内置的 JDBC 驱动
 engine = create_engine(
-    "gaussdb+jdbc://sqlbuilder1:huawei%40123@127.0.0.1:8000/postgres?sslmode=disable",
+    "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995/postgres"
+    "?driver=GaussDB+ODBC+Driver&sslmode=disable",
     pool_pre_ping=True,
 )
 
@@ -37,25 +55,26 @@ with engine.connect() as conn:
 ## 连接串格式
 
 ```text
-gaussdb+jdbc://用户名:密码@主机:端口/数据库名?sslmode=disable
+gaussdb+odbc://用户名:密码@主机:端口/数据库名?driver=GaussDB+ODBC+Driver&sslmode=disable
 ```
 
 也支持短格式：
 
 ```text
-gaussdb://用户名:密码@主机:端口/数据库名?sslmode=disable
+gaussdb://用户名:密码@主机:端口/数据库名?driver=GaussDB+ODBC+Driver&sslmode=disable
 ```
 
-如果需要使用自己的 JDBC 驱动（比如不同版本），可以通过 `jdbc_driver_path` 覆盖内置驱动：
+如果已在系统 ODBC 管理器中配置了 DSN，可以使用 DSN 模式：
 
 ```text
-gaussdb+jdbc://用户名:密码@主机:端口/数据库名?jdbc_driver_path=/path/to/your/gsjdbc4.jar&sslmode=disable
+gaussdb+odbc://用户名:密码@/数据库名?dsn=MyGaussDB
 ```
 
-其他可选参数：
-
-- `jdbc_driver_class` — 指定 JDBC 驱动类名，默认 `com.huawei.gaussdb.jdbc.Driver`
-- `jdbc_url` — 完全覆盖底层 JDBC URL
+可选参数：
+- `driver` — 指定 ODBC 驱动名称，默认 `GaussDB ODBC Driver`
+- `dsn` — 使用系统已配置的 ODBC 数据源名称
+- `sslmode` — SSL 模式（disable/require/verify-ca/verify-full）
+- 其他查询参数会自动转发为 ODBC 连接属性
 
 ## ORM 用法
 
@@ -65,7 +84,8 @@ from sqlalchemy.orm import Session, declarative_base
 from datetime import datetime
 
 engine = create_engine(
-    "gaussdb+jdbc://sqlbuilder1:huawei%40123@127.0.0.1:8000/testm?sslmode=disable",
+    "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995/testm"
+    "?driver=GaussDB+ODBC+Driver&sslmode=disable",
     pool_pre_ping=True,
 )
 
@@ -121,12 +141,12 @@ with Session(engine) as session:
 - **M 兼容 CAST**：不支持 `CAST(x AS VARCHAR)`，需用 `CAST(x AS CHAR)`
 - **M 兼容 TIMESTAMP DEFAULT**：`TIMESTAMP(6) DEFAULT current_timestamp` 不被支持
 - **M 兼容 TEXT**：最大 65535 字节
-- **Decimal 精度**：GaussDB/JDBC 侧对超过 15 位有效数字的 Decimal 有精度损失
+- **Decimal 精度**：超过 15 位有效数字的 Decimal 可能有精度损失
 - **SERIALIZABLE 隔离级别**：GaussDB 集中式不支持，静默降级为 REPEATABLE READ
 
 ## 并发限制
 
-通过 JayDeBeApi/JPype 在 Python 进程内调用 JVM。`threadsafety = 1`，模块可被多线程共享，但连接对象不应跨线程共享。建议每个线程从 SQLAlchemy engine 独立获取连接。
+通过 pyodbc 调用 ODBC 驱动。`threadsafety = 1`，模块可被多线程共享，但连接对象不应跨线程共享。建议每个线程从 SQLAlchemy engine 独立获取连接。
 
 ## 开发和测试
 
@@ -141,9 +161,9 @@ pytest
 连接真实 GaussDB 环境跑集成测试：
 
 ```bash
-export GAUSSDB_TEST_URL_A='gaussdb+jdbc://user:password@host:port/a_db?sslmode=disable'
-export GAUSSDB_TEST_URL_B='gaussdb+jdbc://user:password@host:port/b_db?sslmode=disable'
-export GAUSSDB_TEST_URL_M='gaussdb+jdbc://user:password@host:port/m_db?sslmode=disable'
+export GAUSSDB_TEST_URL_A='gaussdb+odbc://user:password@host:port/a_db?driver=GaussDB+ODBC+Driver&sslmode=disable'
+export GAUSSDB_TEST_URL_B='gaussdb+odbc://user:password@host:port/b_db?driver=GaussDB+ODBC+Driver&sslmode=disable'
+export GAUSSDB_TEST_URL_M='gaussdb+odbc://user:password@host:port/m_db?driver=GaussDB+ODBC+Driver&sslmode=disable'
 pytest -m integration
 ```
 
@@ -154,7 +174,7 @@ pip install build
 python -m build
 ```
 
-打包产物在 `dist/` 目录，whl 约 1.5MB（含内置 JDBC 驱动）。
+打包产物在 `dist/` 目录。
 
 ## 技术架构
 
@@ -165,11 +185,11 @@ SQLAlchemy (ORM / Core)
     ↓
 GaussDB SQLAlchemy Dialect (本驱动)
     ↓
-JayDeBeApi + JPype1
+pyodbc
     ↓
-JVM (JRE/JDK 8+)
+ODBC Driver Manager (Windows 自带 / Linux unixODBC)
     ↓
-GaussDB JDBC Driver (内置 jar)
+GaussDB ODBC Driver
     ↓
 GaussDB 集中式
 ```

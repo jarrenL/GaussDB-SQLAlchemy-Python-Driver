@@ -3,7 +3,7 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 
 from gaussdb_sqlalchemy.alembic import register_alembic_impl
-from gaussdb_sqlalchemy.jdbc import GaussDBDialect_jdbc
+from gaussdb_sqlalchemy.odbc import GaussDBDialect_odbc
 
 
 def test_register_alembic_impl_when_alembic_is_installed():
@@ -25,7 +25,7 @@ def test_m_compat_alembic_rename_column_uses_change_column():
 
     register_alembic_impl()
     output = StringIO()
-    dialect = GaussDBDialect_jdbc()
+    dialect = GaussDBDialect_odbc()
     dialect.gaussdb_compatibility = "M"
     context = MigrationContext.configure(
         dialect=dialect,
@@ -53,7 +53,7 @@ def test_non_m_alembic_rename_column_keeps_postgresql_style():
 
     register_alembic_impl()
     output = StringIO()
-    dialect = GaussDBDialect_jdbc()
+    dialect = GaussDBDialect_odbc()
     dialect.gaussdb_compatibility = "A"
     context = MigrationContext.configure(
         dialect=dialect,
@@ -79,7 +79,7 @@ def test_alembic_type_change_uses_sqlalchemy20_compatible_generic_sql():
 
     register_alembic_impl()
     output = StringIO()
-    dialect = GaussDBDialect_jdbc()
+    dialect = GaussDBDialect_odbc()
     dialect.gaussdb_compatibility = "A"
     context = MigrationContext.configure(
         dialect=dialect,
@@ -100,7 +100,7 @@ def test_m_alembic_type_change_uses_modify_column():
 
     register_alembic_impl()
     output = StringIO()
-    dialect = GaussDBDialect_jdbc()
+    dialect = GaussDBDialect_odbc()
     dialect.gaussdb_compatibility = "M"
     context = MigrationContext.configure(
         dialect=dialect,
@@ -121,7 +121,7 @@ def test_m_alembic_nullable_true_uses_modify_column_null():
 
     register_alembic_impl()
     output = StringIO()
-    dialect = GaussDBDialect_jdbc()
+    dialect = GaussDBDialect_odbc()
     dialect.gaussdb_compatibility = "M"
     context = MigrationContext.configure(
         dialect=dialect,
@@ -142,7 +142,7 @@ def test_m_alembic_nullable_false_uses_modify_column_not_null():
 
     register_alembic_impl()
     output = StringIO()
-    dialect = GaussDBDialect_jdbc()
+    dialect = GaussDBDialect_odbc()
     dialect.gaussdb_compatibility = "M"
     context = MigrationContext.configure(
         dialect=dialect,

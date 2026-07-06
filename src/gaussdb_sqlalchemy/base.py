@@ -159,6 +159,14 @@ class GaussDBTypeCompiler(PGTypeCompiler):
             return f"TIMESTAMP({precision})"
         return super().visit_TIMESTAMP(type_, **kw)
 
+    def visit_TIME(self, type_, **kw):
+        if self.dialect.gaussdb_compatibility == "M":
+            precision = getattr(type_, "precision", None)
+            if precision is not None:
+                return f"TIME({precision})"
+            return "TIME"
+        return super().visit_TIME(type_, **kw)
+
     def visit_large_binary(self, type_, **kw):
         if self.dialect.gaussdb_compatibility == "M":
             return "BLOB"
@@ -235,7 +243,9 @@ class GaussDBDialect(PGDialect):
             self.execution_ctx_cls = GaussDBMExecutionContext
 
     def _get_server_version_info(self, connection):
-        version = connection.exec_driver_sql("select pg_catalog.version()").scalar()
+        version = connection.exec_driver_sql(
+            "select pg_catalog.version()::text"
+        ).scalar()
         version = self._decode_if_bytes(version)
 
         gaussdb_version = self._match_version(version, "GaussDB Kernel")
@@ -252,14 +262,22 @@ class GaussDBDialect(PGDialect):
         return postgres_version
 
     def _get_default_schema_name(self, connection):
-        schema_name = connection.exec_driver_sql("select current_schema()").scalar()
-        return self._decode_if_bytes(schema_name)
+        # Use SHOW to avoid type-compatibility issues with ODBC drivers
+        # that don't recognize GaussDB's `name` wire type.
+        search_path = connection.exec_driver_sql(
+            "show search_path"
+        ).scalar()
+        search_path = self._decode_if_bytes(search_path)
+        # search_path is like "$user, public" — take the first entry
+        if search_path:
+            return search_path.split(",")[0].strip()
+        return "public"
 
     def _get_database_compatibility(self, connection):
         try:
             compatibility = connection.exec_driver_sql(
                 """
-                select datcompatibility
+                select datcompatibility::text
                 from pg_database
                 where datname = current_database()
                 """
@@ -286,7 +304,7 @@ class GaussDBDialect(PGDialect):
         try:
             cursor.execute(
                 """
-                select datcompatibility
+                select datcompatibility::text
                 from pg_database
                 where datname = current_database()
                 """

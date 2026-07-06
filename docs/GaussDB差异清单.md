@@ -147,7 +147,7 @@ datcompatibility = M
 
 结论：
 
-当前包在 GaussDB 507.0.0 上可连接 A 兼容、B 兼容和 M 兼容数据库，并完成基础 SQLAlchemy 能力验证。该 JDBC/SQLAlchemy 方言不是 Oracle/MySQL 原生协议驱动，复杂语法仍需按目标库兼容模式分别验证。
+当前包在 GaussDB 507.0.0 上可连接 A 兼容、B 兼容和 M 兼容数据库，并完成基础 SQLAlchemy 能力验证。该 ODBC/SQLAlchemy 方言不是 Oracle/MySQL 原生协议驱动，复杂语法仍需按目标库兼容模式分别验证。
 
 ## 待继续验证
 

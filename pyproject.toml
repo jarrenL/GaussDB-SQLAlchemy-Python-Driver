@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gaussdb-sqlalchemy-python-driver"
-version = "0.1.0"
-description = "Lightweight SQLAlchemy JDBC dialect for Huawei GaussDB centralized 505.1."
+version = "0.2.0"
+description = "SQLAlchemy ODBC dialect for Huawei GaussDB centralized."
 readme = "README.md"
 requires-python = ">=3.8"
 license = "Apache-2.0"
 authors = [{ name = "GaussDB Python Driver Contributors" }]
-keywords = ["gaussdb", "sqlalchemy", "database", "driver", "windows"]
+keywords = ["gaussdb", "sqlalchemy", "database", "driver", "odbc", "windows"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -28,8 +28,7 @@ classifiers = [
 ]
 dependencies = [
     "SQLAlchemy>=2.0,<2.2",
-    "JayDeBeApi>=1.2.3",
-    "JPype1>=1.5",
+    "pyodbc>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -43,14 +42,11 @@ Homepage = "https://github.com/jarrenL/GaussDB-SQLAlchemy-Python-Driver"
 Issues = "https://github.com/jarrenL/GaussDB-SQLAlchemy-Python-Driver/issues"
 
 [project.entry-points."sqlalchemy.dialects"]
-gaussdb = "gaussdb_sqlalchemy.jdbc:GaussDBDialect_jdbc"
-"gaussdb.jdbc" = "gaussdb_sqlalchemy.jdbc:GaussDBDialect_jdbc"
+gaussdb = "gaussdb_sqlalchemy.odbc:GaussDBDialect_odbc"
+"gaussdb.odbc" = "gaussdb_sqlalchemy.odbc:GaussDBDialect_odbc"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-gaussdb_sqlalchemy = ["gaussdbjdbc.jar"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -105,8 +105,22 @@ def run(url: str) -> list[tuple[str, str, str]]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--url", default=os.environ.get("GAUSSDB_TEST_URL"))
+    parser = argparse.ArgumentParser(
+        description=(
+            "Probe PostgreSQL/Oracle/MySQL-style SQL against the configured "
+            "GaussDB URL. Use a gaussdb+odbc:// URL via --url or "
+            "GAUSSDB_TEST_URL."
+        )
+    )
+    parser.add_argument(
+        "--url",
+        default=os.environ.get("GAUSSDB_TEST_URL"),
+        help=(
+            "SQLAlchemy URL in ODBC format, e.g. "
+            "gaussdb+odbc://user:password@host:port/dbname"
+            "?driver=GaussDB+ODBC+Driver&sslmode=disable"
+        ),
+    )
     args = parser.parse_args()
     if not args.url:
         parser.error("--url or GAUSSDB_TEST_URL is required")

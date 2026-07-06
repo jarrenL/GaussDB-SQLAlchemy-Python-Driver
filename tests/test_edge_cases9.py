@@ -12,12 +12,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, declarative_base
 
-JAR = "/Users/lj/flink/flink-1.20.3/lib/gaussdbjdbc-506.0.0.b058-jdk7.jar"
-BASE = "gaussdb+jdbc://sqlbuilder1:huawei%40123@121.37.186.131:19995"
+BASE = "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995"
 URLS = {
-    "A": f"{BASE}/postgres?jdbc_driver_path={JAR}&sslmode=disable",
-    "B": f"{BASE}/gdbdrv_b_compat?jdbc_driver_path={JAR}&sslmode=disable",
-    "M": f"{BASE}/testm?jdbc_driver_path={JAR}&sslmode=disable",
+    "A": f"{BASE}/postgres?sslmode=disable",
+    "B": f"{BASE}/gdbdrv_b_compat?sslmode=disable",
+    "M": f"{BASE}/testm?sslmode=disable",
 }
 
 def _engine(compat, **kw):

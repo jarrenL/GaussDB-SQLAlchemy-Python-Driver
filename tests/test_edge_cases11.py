@@ -1,4 +1,4 @@
-"""Round 11: Deep edge cases — JDBC type conversion, parameter binding, server-side functions, M-compat specifics."""
+"""Round 11: Deep edge cases — ODBC type conversion, parameter binding, server-side functions, M-compat specifics."""
 import uuid, time
 from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal
@@ -13,12 +13,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, declarative_base, relationship
 
-JAR = "/Users/lj/flink/flink-1.20.3/lib/gaussdbjdbc-506.0.0.b058-jdk7.jar"
-BASE = "gaussdb+jdbc://sqlbuilder1:huawei%40123@121.37.186.131:19995"
+BASE = "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995"
 URLS = {
-    "A": f"{BASE}/postgres?jdbc_driver_path={JAR}&sslmode=disable",
-    "B": f"{BASE}/gdbdrv_b_compat?jdbc_driver_path={JAR}&sslmode=disable",
-    "M": f"{BASE}/testm?jdbc_driver_path={JAR}&sslmode=disable",
+    "A": f"{BASE}/postgres?sslmode=disable",
+    "B": f"{BASE}/gdbdrv_b_compat?sslmode=disable",
+    "M": f"{BASE}/testm?sslmode=disable",
 }
 
 def _engine(compat, **kw):
@@ -726,7 +725,7 @@ def test_multiple_statements_behavior(compat):
     with engine.begin() as conn:
         conn.execute(text(f"create table {table_name} (id int)"))
     try:
-        # GaussDB JDBC may or may not support multi-statement in one execute
+        # GaussDB ODBC may or may not support multi-statement in one execute
         try:
             with engine.connect() as conn:
                 conn.execute(text(f"insert into {table_name} values (1); insert into {table_name} values (2)"))

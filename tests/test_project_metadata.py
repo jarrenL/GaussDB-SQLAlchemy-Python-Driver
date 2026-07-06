@@ -15,15 +15,35 @@ def test_pyproject_declares_sqlalchemy_entry_points():
     )
     entry_points = pyproject["project"]["entry-points"]["sqlalchemy.dialects"]
 
-    target = "gaussdb_sqlalchemy.jdbc:GaussDBDialect_jdbc"
+    target = "gaussdb_sqlalchemy.odbc:GaussDBDialect_odbc"
     assert entry_points["gaussdb"] == target
-    assert entry_points["gaussdb.jdbc"] == target
-    assert "gaussdb.gaussdb" not in entry_points
+    assert entry_points["gaussdb.odbc"] == target
+    assert "gaussdb.jdbc" not in entry_points
 
 
-def test_readme_is_chinese_project_documentation():
+def test_readme_documents_odbc_connection():
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-
     assert "# GaussDB SQLAlchemy Python 驱动" in readme
-    assert "轻量化集中式 505.1" in readme
-    assert "gaussdb+jdbc://" in readme
+    assert "ODBC" in readme
+    assert "gaussdb+odbc://" in readme or "gaussdb://" in readme
+    assert "pyodbc" in readme
+
+
+def test_pyproject_dependencies_replaced_jdbc_with_odbc():
+    pyproject = tomllib.loads(
+        (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    deps = pyproject["project"]["dependencies"]
+    dep_str = " ".join(deps)
+    assert "pyodbc" in dep_str
+    assert "JayDeBeApi" not in dep_str
+    assert "JPype1" not in dep_str
+
+
+def test_no_jdbc_artifacts_remain():
+    src = PROJECT_ROOT / "src" / "gaussdb_sqlalchemy"
+    assert not (src / "jdbc.py").exists()
+    assert not (src / "jdbc_dbapi.py").exists()
+    assert not (src / "gaussdbjdbc.jar").exists()
+    assert (src / "odbc.py").exists()
+    assert (src / "odbc_dbapi.py").exists()

@@ -112,7 +112,7 @@ def test_get_server_version_info_supports_gaussdb_kernel_string():
     dialect = GaussDBDialect()
     connection = _Connection(
         {
-            "select pg_catalog.version()": (
+            "select pg_catalog.version()::text": (
                 b"gaussdb (GaussDB Kernel 507.0.0 build 1268bd4d) release"
             )
         }
@@ -125,14 +125,14 @@ def test_get_server_version_info_supports_gaussdb_kernel_string():
 
 def test_get_server_version_info_supports_postgresql_compatible_string():
     dialect = GaussDBDialect()
-    connection = _Connection({"select pg_catalog.version()": "PostgreSQL 9.2.4"})
+    connection = _Connection({"select pg_catalog.version()::text": "PostgreSQL 9.2.4"})
 
     assert dialect._get_server_version_info(connection) == (9, 2, 4)
 
 
 def test_get_server_version_info_rejects_unknown_version_format():
     dialect = GaussDBDialect()
-    connection = _Connection({"select pg_catalog.version()": "unknown database"})
+    connection = _Connection({"select pg_catalog.version()::text": "unknown database"})
 
     try:
         dialect._get_server_version_info(connection)
@@ -144,7 +144,7 @@ def test_get_server_version_info_rejects_unknown_version_format():
 
 def test_get_default_schema_name_decodes_bytes():
     dialect = GaussDBDialect()
-    connection = _Connection({"select current_schema()": b"public"})
+    connection = _Connection({"show search_path": b"public"})
 
     assert dialect._get_default_schema_name(connection) == "public"
 
