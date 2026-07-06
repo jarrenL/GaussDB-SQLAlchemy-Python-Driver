@@ -54,7 +54,7 @@ SQLAlchemy PostgreSQL 方言在索引反射时会处理 PostgreSQL 特有的 ind
 
 ### 5. HSTORE 不应默认启用
 
-HSTORE 是 PostgreSQL 扩展，不应假设轻量化集中式环境可用。
+HSTORE 是 PostgreSQL 扩展，不应假设轻量化环境可用。
 
 处理方式：
 

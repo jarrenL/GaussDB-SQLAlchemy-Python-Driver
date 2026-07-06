@@ -461,7 +461,7 @@ pytest -m integration -rs
 
 ### 6.7 ON CONFLICT 报错
 
-GaussDB 集中式不支持 PostgreSQL `ON CONFLICT` upsert 语法。SQLAlchemy PostgreSQL 方言的 `insert(...).on_conflict_do_update()` 会生成 `ON CONFLICT` SQL，如果数据库返回语法或能力限制错误，属于 GaussDB 集中式限制，不是 Windows 环境或 ODBC 驱动安装问题。
+GaussDB 不支持 PostgreSQL `ON CONFLICT` upsert 语法。SQLAlchemy PostgreSQL 方言的 `insert(...).on_conflict_do_update()` 会生成 `ON CONFLICT` SQL，如果数据库返回语法或能力限制错误，属于 GaussDB 限制，不是 Windows 环境或 ODBC 驱动安装问题。
 
 ### 6.8 M 兼容 LIKE、INTERSECT、EXCEPT 或临时表语法失败
 

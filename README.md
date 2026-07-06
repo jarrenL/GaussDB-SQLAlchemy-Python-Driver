@@ -1,6 +1,6 @@
 # GaussDB SQLAlchemy Python 驱动
 
-面向华为 GaussDB 集中式数据库的 Python SQLAlchemy 方言驱动。通过 pyodbc 调用 GaussDB ODBC Driver，接入 SQLAlchemy 的 ORM、连接池、事务、SQL 编译和反射能力。支持 A 兼容（Oracle 风格）、B 兼容（MySQL 风格）和 M 兼容（MySQL 风格）三种模式。
+面向华为 GaussDB 数据库的 Python SQLAlchemy 方言驱动。通过 pyodbc 调用 GaussDB ODBC Driver，接入 SQLAlchemy 的 ORM、连接池、事务、SQL 编译和反射能力。支持 A 兼容（Oracle 风格）、B 兼容（MySQL 风格）和 M 兼容（MySQL 风格）三种模式。
 
 不需要 Java 环境，不需要 libpq，只需安装 GaussDB ODBC 驱动和 pyodbc 即可。
 
@@ -134,7 +134,7 @@ with Session(engine) as session:
 
 ## 已知限制
 
-- **ON CONFLICT**：GaussDB 集中式不支持 PostgreSQL `ON CONFLICT` upsert 语法
+- **ON CONFLICT**：GaussDB 不支持 PostgreSQL `ON CONFLICT` upsert 语法
 - **M 兼容 LIKE**：默认大小写不敏感（MySQL 行为）；A/B 兼容为大小写敏感
 - **M 兼容集合运算**：不支持 `INTERSECT` / `EXCEPT`
 - **M 兼容临时表**：不支持 `CREATE TEMP TABLE`，需用 `CREATE TEMPORARY TABLE`
@@ -142,7 +142,7 @@ with Session(engine) as session:
 - **M 兼容 TIMESTAMP DEFAULT**：`TIMESTAMP(6) DEFAULT current_timestamp` 不被支持
 - **M 兼容 TEXT**：最大 65535 字节
 - **Decimal 精度**：超过 15 位有效数字的 Decimal 可能有精度损失
-- **SERIALIZABLE 隔离级别**：GaussDB 集中式不支持，静默降级为 REPEATABLE READ
+- **SERIALIZABLE 隔离级别**：GaussDB 不支持，静默降级为 REPEATABLE READ
 
 ## 并发限制
 
@@ -191,7 +191,7 @@ ODBC Driver Manager (Windows 自带 / Linux unixODBC)
     ↓
 GaussDB ODBC Driver
     ↓
-GaussDB 集中式
+GaussDB 
 ```
 
 ## 开源协议
