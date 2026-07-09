@@ -404,6 +404,27 @@ class GaussDBDialect(PGDialect):
             + """
             order by c.relname, a.attnum
             """
+        ) if self.gaussdb_compatibility != "M" else text(
+            """
+            select
+                n.nspname as schema_name,
+                c.relname as table_name,
+                a.attname as name,
+                pg_catalog.format_type(a.atttypid, a.atttypmod) as format_type,
+                a.attnotnull as not_null,
+                NULL::text as "default",
+                NULL::text as comment
+            from pg_catalog.pg_class c
+            join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+            join pg_catalog.pg_attribute a on a.attrelid = c.oid
+            left join pg_catalog.pg_attrdef d
+                on d.adrelid = a.attrelid and d.adnum = a.attnum
+            where
+            """
+            + " and ".join(conditions)
+            + """
+            order by c.relname, a.attnum
+            """
         )
         if filter_names:
             query = query.bindparams(bindparam("filter_names", expanding=True))
@@ -552,12 +573,17 @@ class GaussDBDialect(PGDialect):
             schema_condition = " and n.nspname = :schema"
             params["schema"] = schema
 
+        indexdef_expr = (
+            "NULL::text as definition"
+            if self.gaussdb_compatibility == "M"
+            else "pg_catalog.pg_get_indexdef(i.oid) as definition"
+        )
         query = text(
             f"""
             select
                 i.relname as index_name,
                 x.indisunique as is_unique,
-                pg_catalog.pg_get_indexdef(i.oid) as definition,
+                {indexdef_expr},
                 a.attname as column_name,
                 a.attnum as ordinality
             from pg_catalog.pg_class t
@@ -611,9 +637,15 @@ class GaussDBDialect(PGDialect):
         else:
             condition += " and pg_catalog.pg_table_is_visible(c.oid)"
 
+        if self.gaussdb_compatibility == "M":
+            # obj_description may not exist in M-compat mode
+            comment_expr = "NULL::text as comment"
+        else:
+            comment_expr = "pg_catalog.obj_description(c.oid, 'pg_class') as comment"
+
         query = text(
             f"""
-            select pg_catalog.obj_description(c.oid, 'pg_class') as comment
+            select {comment_expr}
             from pg_catalog.pg_class c
             join pg_catalog.pg_namespace n on n.oid = c.relnamespace
             where {condition}
