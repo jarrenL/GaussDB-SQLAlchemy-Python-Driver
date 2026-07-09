@@ -389,12 +389,12 @@ def test_datetime_microseconds(compat):
             rows = conn.execute(select(t.c.ts).order_by(t.c.id)).all()
             for expected, actual in zip(test_vals, rows):
                 # ODBC driver truncates microseconds to milliseconds on some platforms
-    _actual = actual[0]
-    _expected = expected
-    if compat == "M":
-        _actual = _actual.replace(microsecond=(_actual.microsecond // 1000) * 1000) if hasattr(_actual, 'microsecond') else _actual
-        _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000) if hasattr(_expected, 'microsecond') else _expected
-    assert _actual == _expected, f"DT mismatch: {expected} -> {actual[0]}"
+                _actual = actual[0]
+                _expected = expected
+                if compat == "M":
+                    _actual = _actual.replace(microsecond=(_actual.microsecond // 1000) * 1000) if hasattr(_actual, 'microsecond') else _actual
+                    _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000) if hasattr(_expected, 'microsecond') else _expected
+                assert _actual == _expected, f"DT mismatch: {expected} -> {actual[0]}"
         print(f"  {compat} datetime microseconds: PASS")
     finally:
         md.drop_all(engine)
@@ -428,10 +428,10 @@ def test_date_range_millennia(compat):
             rows = conn.execute(select(t.c.d).order_by(t.c.id)).all()
             for expected, actual in zip(test_dates, rows):
                 # ODBC driver may return datetime instead of date
-    _actual = actual[0]
-    if hasattr(_actual, "date"):
-        _actual = _actual.date()
-    assert _actual == expected, f"Date mismatch: {expected} -> {actual[0]}"
+                _actual = actual[0]
+                if hasattr(_actual, "date"):
+                    _actual = _actual.date()
+                assert _actual == expected, f"Date mismatch: {expected} -> {actual[0]}"
         print(f"  {compat} date millennia range: PASS")
     finally:
         md.drop_all(engine)
@@ -685,8 +685,8 @@ def test_timezone_aware_datetime_insert(compat):
             conn.execute(t.insert().values(id=1, ts=aware))
             result = conn.execute(select(t.c.ts).where(t.c.id == 1)).scalar_one()
             # ODBC driver may strip timezone info — compare as naive UTC
-    _result_naive = result.replace(tzinfo=None) if result.tzinfo else result
-    assert _result_naive == expected_utc, f"TZ conversion: {aware} -> {result}, expected {expected_utc}"
+            _result_naive = result.replace(tzinfo=None) if result.tzinfo else result
+            assert _result_naive == expected_utc, f"TZ conversion: {aware} -> {result}, expected {expected_utc}"
         print(f"  {compat} timezone conversion: PASS")
 
         # Insert from UTC-5

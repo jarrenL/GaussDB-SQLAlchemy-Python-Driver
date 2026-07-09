@@ -370,18 +370,18 @@ def test_m_multiple_datetime_columns():
             ))
             row = conn.execute(select(t.c.created, t.c.updated, t.c.deleted)).one()
             # ODBC driver truncates microseconds to milliseconds
-    _expected_created = datetime(2026, 1, 1, 10, 0, 0, 123456)
-    _actual_created = row[0]
-    if hasattr(_actual_created, "microsecond"):
-        _expected_created = _expected_created.replace(microsecond=(_expected_created.microsecond // 1000) * 1000)
-        _actual_created = _actual_created.replace(microsecond=(_actual_created.microsecond // 1000) * 1000)
-    assert _actual_created == _expected_created, f"created: {row[0]}"
+            _expected_created = datetime(2026, 1, 1, 10, 0, 0, 123456)
+            _actual_created = row[0]
+            if hasattr(_actual_created, "microsecond"):
+                _expected_created = _expected_created.replace(microsecond=(_expected_created.microsecond // 1000) * 1000)
+                _actual_created = _actual_created.replace(microsecond=(_actual_created.microsecond // 1000) * 1000)
+            assert _actual_created == _expected_created, f"created: {row[0]}"
             _expected_updated = datetime(2026, 6, 23, 14, 30, 45, 789012)
-    _actual_updated = row[1]
-    if hasattr(_actual_updated, "microsecond"):
-        _expected_updated = _expected_updated.replace(microsecond=(_expected_updated.microsecond // 1000) * 1000)
-        _actual_updated = _actual_updated.replace(microsecond=(_actual_updated.microsecond // 1000) * 1000)
-    assert _actual_updated == _expected_updated, f"updated: {row[1]}"
+            _actual_updated = row[1]
+            if hasattr(_actual_updated, "microsecond"):
+                _expected_updated = _expected_updated.replace(microsecond=(_expected_updated.microsecond // 1000) * 1000)
+                _actual_updated = _actual_updated.replace(microsecond=(_actual_updated.microsecond // 1000) * 1000)
+            assert _actual_updated == _expected_updated, f"updated: {row[1]}"
             assert row[2] is None
         print("M multiple DateTime: PASS")
     finally:

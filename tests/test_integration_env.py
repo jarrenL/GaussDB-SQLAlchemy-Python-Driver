@@ -628,10 +628,10 @@ def test_common_data_types_against_gaussdb_url_from_env():
         assert row.amount == Decimal("12345.67")
         assert row.created_at == expected_created_at
         # ODBC driver may return datetime instead of date
-    _bd = row.business_date
-    if hasattr(_bd, "date"):
-        _bd = _bd.date()
-    assert _bd == expected_date
+        _bd = row.business_date
+        if hasattr(_bd, "date"):
+            _bd = _bd.date()
+        assert _bd == expected_date
         assert row.enabled is True or row.enabled == 1 or row.enabled == "1"
         assert row.description == "GaussDB text roundtrip"
         assert bytes(row.payload) == expected_payload

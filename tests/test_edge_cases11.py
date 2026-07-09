@@ -132,12 +132,12 @@ def test_datetime_parameter_binding(compat):
             for i, expected in enumerate(test_vals, 1):
                 actual = conn.execute(select(t.c.ts).where(t.c.id == i)).scalar_one()
                 # ODBC driver truncates microseconds to milliseconds on some platforms
-    _actual = actual
-    _expected = expected
-    if compat == "M" and hasattr(_actual, "microsecond"):
-        _actual = _actual.replace(microsecond=(_actual.microsecond // 1000) * 1000)
-        _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000)
-    assert _actual == _expected, f"{compat} row {i}: {expected} -> {actual}"
+                _actual = actual
+                _expected = expected
+                if compat == "M" and hasattr(_actual, "microsecond"):
+                    _actual = _actual.replace(microsecond=(_actual.microsecond // 1000) * 1000)
+                    _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000)
+                assert _actual == _expected, f"{compat} row {i}: {expected} -> {actual}"
         print(f"  {compat} datetime param binding: PASS")
     finally:
         md.drop_all(engine)
@@ -196,12 +196,12 @@ def test_decimal_parameter_binding(compat):
             for i, expected in enumerate(test_vals, 1):
                 actual = conn.execute(select(t.c.n).where(t.c.id == i)).scalar_one()
                 # ODBC driver truncates microseconds to milliseconds on some platforms
-    _actual = actual
-    _expected = expected
-    if compat == "M" and hasattr(_actual, "microsecond"):
-        _actual = _actual.replace(microsecond=(_actual.microsecond // 1000) * 1000)
-        _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000)
-    assert _actual == _expected, f"{compat} row {i}: {expected} -> {actual}"
+                _actual = actual
+                _expected = expected
+                if compat == "M" and hasattr(_actual, "microsecond"):
+                    _actual = _actual.replace(microsecond=(_actual.microsecond // 1000) * 1000)
+                    _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000)
+                assert _actual == _expected, f"{compat} row {i}: {expected} -> {actual}"
         print(f"  {compat} decimal param binding: PASS")
     finally:
         md.drop_all(engine)
@@ -375,12 +375,12 @@ def test_m_timestamp_reflection_precision():
             conn.execute(t.insert().values(id=1, ts=datetime(2026, 6, 23, 14, 30, 45, 123456)))
             result = conn.execute(select(t.c.ts).where(t.c.id == 1)).scalar_one()
             # ODBC driver truncates microseconds to milliseconds
-    _expected = datetime(2026, 6, 23, 14, 30, 45, 123456)
-    _result = result
-    if hasattr(_result, "microsecond"):
-        _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000)
-        _result = _result.replace(microsecond=(_result.microsecond // 1000) * 1000)
-    assert _result == _expected
+            _expected = datetime(2026, 6, 23, 14, 30, 45, 123456)
+            _result = result
+            if hasattr(_result, "microsecond"):
+                _expected = _expected.replace(microsecond=(_expected.microsecond // 1000) * 1000)
+                _result = _result.replace(microsecond=(_result.microsecond // 1000) * 1000)
+            assert _result == _expected
         print("M TIMESTAMP reflection + microsecond: PASS")
     finally:
         md.drop_all(engine)
@@ -420,9 +420,9 @@ def test_autogenerate_multiple_types(compat):
         if diffs:
             for d in diffs:
                 print(f"  {compat} diff: {d}")
-        # ODBC reflection may report spurious nullable diffs for some types
-    real_diffs = [d for d in diffs if not (isinstance(d, list) and len(d) > 0 and d[0] == "modify_nullable")]
-    assert real_diffs == [], f"Expected no diffs, got: {diffs}"
+            # ODBC reflection may report spurious nullable diffs for some types
+        real_diffs = [d for d in diffs if not (isinstance(d, list) and len(d) > 0 and d[0] == "modify_nullable")]
+        assert real_diffs == [], f"Expected no diffs, got: {diffs}"
         print(f"  {compat} autogenerate multiple types: PASS")
     finally:
         md.drop_all(engine)
@@ -518,13 +518,13 @@ def test_utc_datetime_binding(compat):
             conn.execute(t.insert().values(id=1, ts=aware))
             result = conn.execute(select(t.c.ts).where(t.c.id == 1)).scalar_one()
             # ODBC driver may strip tzinfo and truncate microseconds
-    _result = result
-    if compat == "M" and hasattr(_result, "microsecond"):
-        _result = _result.replace(microsecond=(_result.microsecond // 1000) * 1000)
-        _expected = expected_naive.replace(microsecond=(expected_naive.microsecond // 1000) * 1000)
-    else:
-        _expected = expected_naive
-    assert _result == _expected, f"UTC: {aware} -> {result}"
+            _result = result
+            if compat == "M" and hasattr(_result, "microsecond"):
+                _result = _result.replace(microsecond=(_result.microsecond // 1000) * 1000)
+                _expected = expected_naive.replace(microsecond=(expected_naive.microsecond // 1000) * 1000)
+            else:
+                _expected = expected_naive
+            assert _result == _expected, f"UTC: {aware} -> {result}"
         print(f"  {compat} UTC datetime binding: PASS")
     finally:
         md.drop_all(engine)
@@ -553,18 +553,18 @@ def test_offset_datetime_binding(compat):
             r1 = conn.execute(select(t.c.ts).where(t.c.id == 1)).scalar_one()
             r2 = conn.execute(select(t.c.ts).where(t.c.id == 2)).scalar_one()
             # ODBC driver strips timezone info; also truncates microseconds on M
-    _r1 = r1
-    _exp = expected_utc
-    if compat == "M" and hasattr(_r1, "microsecond"):
-        _r1 = _r1.replace(microsecond=(_r1.microsecond // 1000) * 1000)
-        _exp = _exp.replace(microsecond=(_exp.microsecond // 1000) * 1000)
-    assert _r1 == _exp, f"+8: {aware_p8} -> {r1}"
+            _r1 = r1
+            _exp = expected_utc
+            if compat == "M" and hasattr(_r1, "microsecond"):
+                _r1 = _r1.replace(microsecond=(_r1.microsecond // 1000) * 1000)
+                _exp = _exp.replace(microsecond=(_exp.microsecond // 1000) * 1000)
+            assert _r1 == _exp, f"+8: {aware_p8} -> {r1}"
             _r2 = r2
-    _exp2 = expected_utc
-    if compat == "M" and hasattr(_r2, "microsecond"):
-        _r2 = _r2.replace(microsecond=(_r2.microsecond // 1000) * 1000)
-        _exp2 = _exp2.replace(microsecond=(_exp2.microsecond // 1000) * 1000)
-    assert _r2 == _exp2, f"-5: {aware_m5} -> {r2}"
+            _exp2 = expected_utc
+            if compat == "M" and hasattr(_r2, "microsecond"):
+                _r2 = _r2.replace(microsecond=(_r2.microsecond // 1000) * 1000)
+                _exp2 = _exp2.replace(microsecond=(_exp2.microsecond // 1000) * 1000)
+            assert _r2 == _exp2, f"-5: {aware_m5} -> {r2}"
         print(f"  {compat} offset datetime binding: PASS")
     finally:
         md.drop_all(engine)
