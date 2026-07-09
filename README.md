@@ -41,7 +41,7 @@ pip install gaussdb_sqlalchemy_python_driver-0.2.0-py3-none-any.whl
 from sqlalchemy import create_engine, text
 
 engine = create_engine(
-    "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995/postgres"
+    "gaussdb+odbc://USER:PASSWORD@HOST:PORT/postgres"  # 用你的实际连接信息
     "?driver=GaussDB+ODBC+Driver&sslmode=disable",
     pool_pre_ping=True,
 )
@@ -84,7 +84,7 @@ from sqlalchemy.orm import Session, declarative_base
 from datetime import datetime
 
 engine = create_engine(
-    "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995/testm"
+    "gaussdb+odbc://USER:PASSWORD@HOST:PORT/testm"  # M兼容模式示例
     "?driver=GaussDB+ODBC+Driver&sslmode=disable",
     pool_pre_ping=True,
 )

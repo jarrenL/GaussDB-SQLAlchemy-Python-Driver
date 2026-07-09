@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """Live GaussDB ODBC integration test via SQLAlchemy."""
 
-import sys
-sys.path.insert(0, "src")
-
 from sqlalchemy import create_engine, text
 
+import os
+import sys
+from urllib.parse import quote_plus
+
+sys.path.insert(0, "src")
+
+_HOST = os.environ.get("GAUSSDB_HOST", "121.37.186.131")
+_PORT = os.environ.get("GAUSSDB_PORT", "19995")
+_USER = os.environ.get("GAUSSDB_USER", "sqlbuilder1")
+_PASS = quote_plus(os.environ.get("GAUSSDB_PASSWORD", "huawei@123"))
+
 URL = (
-    "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995/postgres"
-    "?driver=PostgreSQL&sslmode=disable"
+    f"gaussdb+odbc://{_USER}:{_PASS}@{_HOST}:{_PORT}/postgres"
+    f"?driver=PostgreSQL&sslmode=disable"
 )
 
 def main():

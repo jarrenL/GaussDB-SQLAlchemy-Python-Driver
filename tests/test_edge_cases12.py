@@ -12,12 +12,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, declarative_base, relationship
 
-BASE = "gaussdb+odbc://sqlbuilder1:huawei%40123@121.37.186.131:19995"
-URLS = {
-    "A": f"{BASE}/postgres?sslmode=disable",
-    "B": f"{BASE}/gdbdrv_b_compat?sslmode=disable",
-    "M": f"{BASE}/testm?sslmode=disable",
-}
+from tests.test_config import ODBC_URLS as URLS
 
 def _engine(compat, **kw):
     return create_engine(URLS[compat], pool_pre_ping=True, **kw)
