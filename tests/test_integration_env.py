@@ -27,12 +27,13 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import declarative_base
 
+from tests.test_config import GAUSSDB_TEST_URL
+
 
 def _test_url():
-    url = os.environ.get("GAUSSDB_TEST_URL")
-    if not url:
-        pytest.skip("GAUSSDB_TEST_URL is not configured")
-    return url
+    if not GAUSSDB_TEST_URL:
+        pytest.skip("GAUSSDB_HOST or GAUSSDB_TEST_URL is not configured")
+    return GAUSSDB_TEST_URL
 
 
 def _engine(**kwargs):
