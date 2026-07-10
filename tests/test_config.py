@@ -21,8 +21,27 @@ GAUSSDB_PORT = os.environ.get("GAUSSDB_PORT", "19995")
 GAUSSDB_USER = os.environ.get("GAUSSDB_USER", "")
 GAUSSDB_PASSWORD = os.environ.get("GAUSSDB_PASSWORD", "")
 
-# ODBC driver name (varies by platform/installation)
-GAUSSDB_DRIVER = os.environ.get("GAUSSDB_DRIVER", "GaussDB ODBC Driver")
+# ODBC driver name — auto-detect if not explicitly set
+def _detect_odbc_driver():
+    """Try to find a GaussDB ODBC driver from the system."""
+    explicit = os.environ.get("GAUSSDB_DRIVER")
+    if explicit:
+        return explicit
+    try:
+        import pyodbc
+        for name in pyodbc.drivers():
+            low = name.lower()
+            if "gaussdb" in low:
+                return name
+        # Fallback: PostgreSQL driver also works (GaussDB is PG-compatible)
+        for name in pyodbc.drivers():
+            if "postgresql" in name.lower() and "unicode" in name.lower():
+                return name
+    except Exception:
+        pass
+    return "GaussDB ODBC Driver"
+
+GAUSSDB_DRIVER = _detect_odbc_driver()
 _driver = quote_plus(GAUSSDB_DRIVER)
 
 # Database names for each compatibility mode
