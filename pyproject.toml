@@ -38,8 +38,8 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jarrenL/GaussDB-SQLAlchemy-Python-Driver"
-Issues = "https://github.com/jarrenL/GaussDB-SQLAlchemy-Python-Driver/issues"
+Homepage = "https://github.com/huaweicloud-samples/GaussDB-SQLAlchemy-Python-Driver-Windows"
+Issues = "https://github.com/huaweicloud-samples/GaussDB-SQLAlchemy-Python-Driver-Windows/issues"
 
 [project.entry-points."sqlalchemy.dialects"]
 gaussdb = "gaussdb_sqlalchemy.odbc:GaussDBDialect_odbc"

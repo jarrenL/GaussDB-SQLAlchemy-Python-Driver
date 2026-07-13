@@ -1,4 +1,4 @@
-# GaussDB SQLAlchemy Python 驱动
+# GaussDB SQLAlchemy Python Driver (Windows)
 
 面向华为 GaussDB 数据库的 Python SQLAlchemy 方言驱动。通过 pyodbc 调用 GaussDB ODBC Driver，接入 SQLAlchemy 的 ORM、连接池、事务、SQL 编译和反射能力。支持 A 兼容（Oracle 风格）、B 兼容（MySQL 风格）和 M 兼容（MySQL 风格）三种模式。
 
