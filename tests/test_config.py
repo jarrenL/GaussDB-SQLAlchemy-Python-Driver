@@ -60,15 +60,6 @@ ODBC_URLS = {
     "M": f"{ODBC_BASE}/{GAUSSDB_DB_M}?driver={_driver}&sslmode=disable",
 }
 
-# JDBC connection base (used by _local/manual_tests)
-JDBC_BASE = f"gaussdb+jdbc://{GAUSSDB_USER}:{_pwd}@{GAUSSDB_HOST}:{GAUSSDB_PORT}"
-
-JDBC_URLS = {
-    "A": f"{JDBC_BASE}/{GAUSSDB_DB_A}?sslmode=disable",
-    "B": f"{JDBC_BASE}/{GAUSSDB_DB_B}?sslmode=disable",
-    "M": f"{JDBC_BASE}/{GAUSSDB_DB_M}?sslmode=disable",
-}
-
 # Single-URL convenience (for test_integration_env.py)
 # If GAUSSDB_TEST_URL is set, use it directly; otherwise derive from ODBC_URLS["A"]
 GAUSSDB_TEST_URL = os.environ.get("GAUSSDB_TEST_URL") or (ODBC_URLS["A"] if GAUSSDB_HOST else None)

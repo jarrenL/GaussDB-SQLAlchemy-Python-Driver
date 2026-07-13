@@ -106,7 +106,7 @@ class GaussDBDialect_odbc(GaussDBDialect):
 
 
 # ----------------------------------------------------------------------
-# Enum cast helpers (port from original JDBC dialect, driver-agnostic)
+# Enum cast helpers (driver-agnostic)
 # ----------------------------------------------------------------------
 
 def _cast_enum_placeholders(statement, context):
