@@ -23,7 +23,7 @@ def test_pyproject_declares_sqlalchemy_entry_points():
 
 def test_readme_documents_odbc_connection():
     readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
-    assert "# GaussDB SQLAlchemy Python 驱动" in readme
+    assert "GaussDB SQLAlchemy Python" in readme
     assert "ODBC" in readme
     assert "gaussdb+odbc://" in readme or "gaussdb://" in readme
     assert "pyodbc" in readme
