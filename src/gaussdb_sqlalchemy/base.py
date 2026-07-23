@@ -10,6 +10,9 @@ from sqlalchemy.dialects.postgresql.base import PGCompiler
 from sqlalchemy.dialects.postgresql.base import PGDDLCompiler
 from sqlalchemy.dialects.postgresql.base import PGIdentifierPreparer
 from sqlalchemy.dialects.postgresql.base import PGTypeCompiler
+from sqlalchemy.dialects.postgresql.base import PGExecutionContext
+from sqlalchemy.dialects.postgresql import DATE as _PG_DATE
+from sqlalchemy.dialects.postgresql import BOOLEAN as _PG_BOOLEAN
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy import schema as sa_schema
 from sqlalchemy import types as sqltypes
@@ -18,6 +21,56 @@ from sqlalchemy import text
 from sqlalchemy.sql import expression
 from sqlalchemy.sql import operators
 from sqlalchemy.sql.compiler import OPERATORS
+
+import datetime as _dt
+
+
+class _GaussDBOdbcDate(sqltypes.TypeDecorator):
+    """Date type that normalises ODBC driver datetime returns to date.
+
+    The GaussDB ODBC driver on Windows returns ``datetime.datetime``
+    for DATE columns instead of ``datetime.date``.  pyodbc's
+    ``add_output_converter`` cannot fix this because the driver already
+    converted the raw bytes to a Python object before pyodbc sees it.
+
+    This TypeDecorator wraps the standard PG DATE type and adds a
+    result processor that strips the time component.
+    """
+
+    impl = _PG_DATE
+    cache_ok = True
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        if isinstance(value, _dt.datetime):
+            return value.date()
+        if isinstance(value, _dt.date):
+            return value
+        return value
+
+
+class _GaussDBOdbcBoolean(sqltypes.TypeDecorator):
+    """Boolean type that normalises ODBC driver integer returns to bool.
+
+    The GaussDB ODBC driver returns ``int`` (1/0) for boolean columns.
+    SQLAlchemy's default ``Boolean.result_processor`` is a no-op when
+    ``supports_native_boolean`` is True, so we must add our own.
+    """
+
+    impl = _PG_BOOLEAN
+    cache_ok = True
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode("utf-8")
+        if isinstance(value, str):
+            return value.strip().lower() in ("1", "t", "true", "y")
+        return bool(value)
 
 
 class GaussDBCompiler(PGCompiler):
@@ -173,9 +226,6 @@ class GaussDBTypeCompiler(PGTypeCompiler):
         return super().visit_large_binary(type_, **kw)
 
 
-from sqlalchemy.dialects.postgresql.base import PGExecutionContext
-
-
 class GaussDBMExecutionContext(PGExecutionContext):
     def get_lastrowid(self):
         try:
@@ -218,9 +268,13 @@ class GaussDBDialect(PGDialect):
     gaussdb_compatibility = None
 
     # Register GaussDB M-compat binary types for reflection.
+    # Override date/boolean with ODBC-aware variants that normalise
+    # driver returns (datetime→date, int→bool).
     ischema_names = dict(PGDialect.ischema_names)
     ischema_names["blob"] = LargeBinary
     ischema_names["longblob"] = LargeBinary
+    ischema_names["date"] = _GaussDBOdbcDate
+    ischema_names["boolean"] = _GaussDBOdbcBoolean
 
     def initialize(self, connection):
         super().initialize(connection)

@@ -23,10 +23,18 @@ from sqlalchemy import types as sqltypes
 
 from . import odbc_dbapi
 from .alembic import register_alembic_impl
-from .base import GaussDBDialect
+from .base import GaussDBDialect, _GaussDBOdbcDate, _GaussDBOdbcBoolean
 
 
 register_alembic_impl()
+
+
+# Inherit PG colspecs and override Date/Boolean with ODBC-aware variants.
+# This ensures that BOTH user-defined Column(Date) and reflected columns
+# get the result processors that normalise ODBC driver returns.
+_cspecs = dict(GaussDBDialect.colspecs)
+_cspecs[sqltypes.Date] = _GaussDBOdbcDate
+_cspecs[sqltypes.Boolean] = _GaussDBOdbcBoolean
 
 # Query-string keys that are not forwarded as ODBC connection attributes.
 _CONTROL_KEYS = {"driver", "dsn"}
@@ -38,6 +46,7 @@ class GaussDBDialect_odbc(GaussDBDialect):
     driver = "odbc"
     default_paramstyle = "qmark"
     supports_statement_cache = True
+    colspecs = _cspecs
 
     @classmethod
     def import_dbapi(cls):
