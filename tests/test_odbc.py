@@ -99,6 +99,9 @@ def test_dbapi_connect_sets_autocommit_false(monkeypatch):
     class FakeConnection:
         autocommit = True
 
+        def add_output_converter(self, sql_type, func):
+            pass  # mock: accept any output converter registration
+
     class FakePyodbc:
         def connect(self, conn_str, **kw):
             assert "Driver=" in conn_str

@@ -455,6 +455,11 @@ class GaussDBDialect(PGDialect):
                     format_type = "bytea"
             default = self._decode_if_bytes(row["default"])
             comment = self._decode_if_bytes(row["comment"])
+            not_null = row["not_null"]
+            if isinstance(not_null, (bytes, bytearray)):
+                not_null = not_null.decode("utf-8")
+            if isinstance(not_null, str):
+                not_null = not_null.strip().lower() in ("t", "true", "1", "y", "yes")
             reflected.setdefault(key, []).append(
                 {
                     "name": column_name,
@@ -465,7 +470,7 @@ class GaussDBDialect(PGDialect):
                         type_description=f"column '{column_name}'",
                         collation=None,
                     ),
-                    "nullable": not row["not_null"],
+                    "nullable": not not_null,
                     "default": default,
                     "autoincrement": self._is_autoincrement_column(default, format_type),
                     "comment": comment,
@@ -517,6 +522,200 @@ class GaussDBDialect(PGDialect):
                 connection, table_name, schema=schema, **kw
             )
         return constraints.items()
+
+    def get_foreign_keys(self, connection, table_name, schema=None, **kw):
+        if self.gaussdb_compatibility != "M":
+            return super().get_foreign_keys(
+                connection, table_name, schema=schema, **kw
+            )
+
+        # M-compat: pg_get_constraintdef(oid, bool) does not exist.
+        # Query pg_constraint directly and resolve column names from
+        # conkey/confkey arrays.
+        schema_condition = ""
+        params: dict = {"table_name": table_name}
+        if schema is not None:
+            schema_condition = " and n.nspname = :schema"
+            params["schema"] = schema
+
+        fk_query = text(
+            f"""
+            select
+                con.conname as name,
+                n_ref.nspname as referred_schema,
+                c_ref.relname as referred_table,
+                con.conkey::text as conkey,
+                con.confkey::text as confkey,
+                con.confupdtype,
+                con.confdeltype,
+                con.confmatchtype,
+                con.condeferrable,
+                con.condeferred
+            from pg_catalog.pg_constraint con
+            join pg_catalog.pg_class c on c.oid = con.conrelid
+            join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+            join pg_catalog.pg_class c_ref on c_ref.oid = con.confrelid
+            join pg_catalog.pg_namespace n_ref
+                on n_ref.oid = c_ref.relnamespace
+            where con.contype = 'f'
+              and c.relname = :table_name
+              {schema_condition}
+            order by con.conname
+            """
+        )
+        rows = connection.execute(fk_query, params).mappings()
+        fkeys: list[dict] = []
+        for row in rows:
+            conname = self._decode_if_bytes(row["name"])
+            referred_schema = self._decode_if_bytes(row["referred_schema"])
+            referred_table = self._decode_if_bytes(row["referred_table"])
+            conkey = self._parse_pg_array(row["conkey"])
+            confkey = self._parse_pg_array(row["confkey"])
+            constrained_columns = self._resolve_attnums(
+                connection, table_name, schema, conkey
+            )
+            referred_columns = self._resolve_attnums(
+                connection, referred_table, referred_schema, confkey
+            )
+            options: dict = {}
+            onupdate = self._fk_action(row["confupdtype"])
+            ondelete = self._fk_action(row["confdeltype"])
+            if onupdate and onupdate != "NO ACTION":
+                options["onupdate"] = onupdate
+            if ondelete and ondelete != "NO ACTION":
+                options["ondelete"] = ondelete
+            matchtype = self._decode_if_bytes(row["confmatchtype"])
+            if matchtype and matchtype != "s":
+                options["match"] = "FULL" if matchtype == "f" else "PARTIAL"
+            if row["condeferrable"]:
+                options["deferrable"] = True
+                options["initially"] = (
+                    "DEFERRED" if row["condeferred"] else "IMMEDIATE"
+                )
+            fkeys.append(
+                {
+                    "name": conname,
+                    "constrained_columns": constrained_columns,
+                    "referred_schema": referred_schema,
+                    "referred_table": referred_table,
+                    "referred_columns": referred_columns,
+                    "options": options,
+                }
+            )
+        return fkeys
+
+    def get_multi_foreign_keys(
+        self, connection, schema=None, filter_names=None, scope=None, kind=None, **kw
+    ):
+        if self.gaussdb_compatibility != "M":
+            return super().get_multi_foreign_keys(
+                connection, schema, filter_names, scope, kind, **kw
+            )
+        result = {}
+        for table_name in self._get_reflection_table_names(
+            connection, schema, filter_names
+        ):
+            result[(schema, table_name)] = self.get_foreign_keys(
+                connection, table_name, schema=schema, **kw
+            )
+        return result.items()
+
+    def get_check_constraints(self, connection, table_name, schema=None, **kw):
+        if self.gaussdb_compatibility != "M":
+            return super().get_check_constraints(
+                connection, table_name, schema=schema, **kw
+            )
+        # M-compat: pg_get_constraintdef does not exist, so we cannot
+        # retrieve the human-readable CHECK expression.  Return empty —
+        # CHECK constraints are rare in MySQL-compatible mode.
+        return []
+
+    def get_multi_check_constraints(
+        self, connection, schema=None, filter_names=None, scope=None, kind=None, **kw
+    ):
+        if self.gaussdb_compatibility != "M":
+            return super().get_multi_check_constraints(
+                connection, schema, filter_names, scope, kind, **kw
+            )
+        result = {}
+        for table_name in self._get_reflection_table_names(
+            connection, schema, filter_names
+        ):
+            result[(schema, table_name)] = self.get_check_constraints(
+                connection, table_name, schema=schema, **kw
+            )
+        return result.items()
+
+    @staticmethod
+    def _parse_pg_array(value):
+        """Parse a PostgreSQL array text representation '{1,2,3}' → [1, 2, 3]."""
+        if value is None:
+            return []
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode("utf-8")
+        if isinstance(value, str):
+            value = value.strip()
+            if value.startswith("{") and value.endswith("}"):
+                value = value[1:-1]
+            if not value:
+                return []
+            return [int(x.strip()) for x in value.split(",") if x.strip()]
+        if isinstance(value, (list, tuple)):
+            return [int(x) for x in value]
+        return []
+
+    def _resolve_attnums(self, connection, table_name, schema, attnums):
+        """Resolve a list of attribute numbers to column names."""
+        if not attnums:
+            return []
+        schema_condition = ""
+        params: dict = {"table_name": table_name}
+        if schema is not None:
+            schema_condition = " and n.nspname = :schema"
+            params["schema"] = schema
+        attnum_list = ",".join(str(a) for a in attnums)
+        query = text(
+            f"""
+            select a.attnum, a.attname
+            from pg_catalog.pg_attribute a
+            join pg_catalog.pg_class c on c.oid = a.attrelid
+            join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+            where c.relname = :table_name
+              {schema_condition}
+              and a.attnum in ({attnum_list})
+            """
+        )
+        rows = connection.execute(query, params).mappings()
+        name_by_attnum = {
+            row["attnum"]: self._decode_if_bytes(row["attname"]) for row in rows
+        }
+        return [name_by_attnum.get(a, str(a)) for a in attnums]
+
+    @staticmethod
+    def _fk_action(code):
+        """Map PostgreSQL FK action code to SQL action name."""
+        if code is None:
+            return None
+        if isinstance(code, (bytes, bytearray)):
+            code = code.decode("utf-8")
+        return {
+            "a": "NO ACTION",
+            "r": "RESTRICT",
+            "c": "CASCADE",
+            "n": "SET NULL",
+            "d": "SET DEFAULT",
+        }.get(code)
+
+    def _load_domains(self, connection, schema=None, **kw):
+        """Skip domain reflection in M-compat mode.
+
+        PGDialect's ``_domain_query`` calls ``pg_get_constraintdef``
+        which does not exist in M-compat mode.  M-compat (MySQL) does
+        not use PostgreSQL domains, so returning an empty list is safe.
+        """
+        if self.gaussdb_compatibility == "M":
+            return []
+        return super()._load_domains(connection, schema=schema, **kw)
 
     def get_unique_constraints(self, connection, table_name, schema=None, **kw):
         schema_condition = ""

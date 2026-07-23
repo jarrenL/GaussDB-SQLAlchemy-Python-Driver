@@ -32,64 +32,95 @@ def _load_dbapi() -> ModuleType:
     return _dbapi
 
 
+import datetime as _dt
+
+
+def _bool_converter(value):
+    """Convert ODBC boolean returns to Python True/False.
+
+    The GaussDB ODBC driver may return 1/0, '1'/'0', b'\\x01'/b'\\x00',
+    or 't'/'f' depending on the compatibility mode and driver version.
+    """
+    if isinstance(value, (bytes, bytearray)):
+        value = value.decode("utf-8")
+    if isinstance(value, str):
+        return value.strip() in ("1", "t", "true", "T", "TRUE")
+    return bool(value)
+
+
+def _date_converter(value):
+    """Convert ODBC date returns to datetime.date.
+
+    The GaussDB ODBC driver on Windows returns datetime.datetime
+    instead of datetime.date for DATE columns.
+    """
+    if isinstance(value, _dt.datetime):
+        return value.date()
+    if isinstance(value, _dt.date):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        s = value.decode("utf-8").strip()
+        return _dt.date.fromisoformat(s)
+    if isinstance(value, str):
+        return _dt.date.fromisoformat(value.strip())
+    return value
+
+
+def _timestamp_converter(value):
+    """Normalize ODBC timestamp returns to datetime.datetime."""
+    if isinstance(value, (bytes, bytearray)):
+        s = value.decode("utf-8").strip()
+        return _dt.datetime.fromisoformat(s)
+    if isinstance(value, str):
+        return _dt.datetime.fromisoformat(value.strip())
+    return value
+
+
+def _text_converter(value):
+    """Convert ODBC text returns to str, normalising CRLF."""
+    if isinstance(value, (bytes, bytearray)):
+        return value.decode("utf-8").replace("\r\n", "\n")
+    if isinstance(value, str):
+        return value.replace("\r\n", "\n")
+    return str(value)
+
+
 def _patch_connection(conn):
     """Apply GaussDB-specific settings to a pyodbc connection.
 
     Registers output converters to normalise values that pyodbc / the
     GaussDB ODBC driver returns in formats different from what
     SQLAlchemy's PostgreSQL dialect expects.
+
+    pyodbc's ``add_output_converter`` accepts **ODBC SQL type codes**
+    (not PostgreSQL OIDs).  The key mappings:
+
+    - ``SQL_BIT`` (-7)  → boolean
+    - ``SQL_TYPE_DATE`` (-91) / ``SQL_DATE`` (9) → date
+    - ``SQL_TYPE_TIMESTAMP`` (-93) / ``SQL_TIMESTAMP`` (11) → timestamp
+    - ``SQL_LONGVARCHAR`` (-1) / ``SQL_VARCHAR`` (1) / ``SQL_WVARCHAR`` (-96) → text
+    - ``SQL_BINARY`` (-2) / ``SQL_VARBINARY`` (-3) / ``SQL_LONGVARBINARY`` (-4) → bytes
     """
     # Ensure autocommit is off — SQLAlchemy manages transactions.
     conn.autocommit = False
 
-    # Type 16 = BOO (boolean).  Some ODBC drivers return '1'/'0' or
-    # b'\x01'/b'\x00' instead of Python True/False.
-    def _bool_converter(value):
-        if isinstance(value, (bytes, bytearray)):
-            value = value.decode("utf-8")
-        if isinstance(value, str):
-            return value.strip() in ("1", "t", "true", "T", "TRUE")
-        return bool(value)
-    try:
-        conn.add_output_converter(16, _bool_converter)
-    except Exception:
-        pass
+    # --- Boolean: SQL_BIT (-7) ---
+    # GaussDB ODBC driver may return int 1/0 for boolean columns.
+    conn.add_output_converter(-7, _bool_converter)
 
-    # Type 1082 = DATE.  Some ODBC drivers (especially on Windows)
-    # return a datetime.datetime instead of datetime.date.
-    import datetime as _dt
-    def _date_converter(value):
-        if isinstance(value, _dt.datetime):
-            return value.date()
-        if isinstance(value, (bytes, bytearray)):
-            s = value.decode("utf-8").strip()
-            return _dt.date.fromisoformat(s)
-        if isinstance(value, str):
-            return _dt.date.fromisoformat(value.strip())
-        return value
-    try:
-        conn.add_output_converter(1082, _date_converter)
-    except Exception:
-        pass
+    # --- Date: SQL_TYPE_DATE (-91) and SQL_DATE (9) ---
+    # GaussDB ODBC driver on Windows returns datetime for DATE columns.
+    conn.add_output_converter(-91, _date_converter)
+    conn.add_output_converter(9, _date_converter)
 
-    # Type 25 = TEXT.  Some drivers return bytes; also normalise
-    # Windows CRLF to LF so round-trip comparisons work.
-    def _text_converter(value):
-        if isinstance(value, (bytes, bytearray)):
-            return value.decode("utf-8").replace("\r\n", "\n")
-        if isinstance(value, str):
-            return value.replace("\r\n", "\n")
-        return str(value)
-    try:
-        conn.add_output_converter(25, _text_converter)
-    except Exception:
-        pass
+    # --- Timestamp: SQL_TYPE_TIMESTAMP (-93) and SQL_TIMESTAMP (11) ---
+    conn.add_output_converter(-93, _timestamp_converter)
+    conn.add_output_converter(11, _timestamp_converter)
 
-    # Type -1 = unknown/long types — decode as UTF-8 text.
-    try:
-        conn.add_output_converter(-1, _text_converter)
-    except Exception:
-        pass
+    # --- Text: SQL_LONGVARCHAR (-1), SQL_VARCHAR (1), SQL_WVARCHAR (-96) ---
+    conn.add_output_converter(-1, _text_converter)
+    conn.add_output_converter(1, _text_converter)
+    conn.add_output_converter(-96, _text_converter)
 
     return conn
 
